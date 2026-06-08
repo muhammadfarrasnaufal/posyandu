@@ -1,6 +1,9 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <?php /** @var string $fullname */ ?>
 <?php /** @var string $email */ ?>
+<?php /** @var string|null $avatar_url */ ?>
+<?php /** @var string|null $success */ ?>
+<?php /** @var string|null $error */ ?>
 <?php /** @var array $stats */ ?>
 <?php /** @var object[] $records */ ?>
 <?php /** @var object[] $upcoming_schedules */ ?>
@@ -165,7 +168,7 @@
             </a>
             <div class="mt-4 p-3 bg-light rounded-3">
                 <h6 class="mb-2">Kontak Cepat</h6>
-                <p class="small mb-1">Telp: <a href="tel:+628123456789">+62 812-3456-789</a></p>
+                <p class="small mb-1">Telp: <a href="tel:+6285695034937">+62 856-9503-4937</a></p>
                 <p class="small mb-0">Email: <a href="mailto:posyandu@domain.local">posyandu@domain.local</a></p>
             </div>
         </aside>
@@ -214,8 +217,42 @@
         <div class="card shadow-sm h-100 hospital-card">
             <div class="card-body">
                 <h5 class="card-title">Profil Anda</h5>
-                <p><strong>Nama:</strong> <?= html_escape($fullname) ?></p>
-                <p><strong>Email:</strong> <?= html_escape($email) ?></p>
+                <?php if (!empty($avatar_url)): ?>
+                    <div class="mb-3 text-center">
+                        <img src="<?= html_escape($avatar_url) ?>" alt="Avatar" class="img-fluid rounded-circle" style="width: 96px; height: 96px; object-fit: cover;" />
+                    </div>
+                <?php else: ?>
+                    <div class="mb-3 text-center">
+                        <div style="width: 96px; height: 96px; display: grid; place-items: center; border-radius: 999px; background: #e2e8f0; color: #0f172a; font-weight: 700;">A</div>
+                    </div>
+                <?php endif; ?>
+                <?php if (!empty($success)): ?>
+                    <div class="alert alert-success small"><?= html_escape($success) ?></div>
+                <?php endif; ?>
+                <?php if (!empty($error)): ?>
+                    <div class="alert alert-danger small"><?= html_escape($error) ?></div>
+                <?php endif; ?>
+                <?= form_open_multipart('auth/update_profile') ?>
+                    <div class="mb-3">
+                        <label class="form-label">Nama Lengkap</label>
+                        <input type="text" name="fullname" class="form-control" value="<?= html_escape($fullname) ?>" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" value="<?= html_escape($email) ?>" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Foto Profil</label>
+                        <input type="file" name="avatar" class="form-control" accept="image/*" />
+                    </div>
+                    <?php if (!empty($avatar_url)): ?>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="remove_avatar" value="1" id="removeAvatar" />
+                            <label class="form-check-label" for="removeAvatar">Hapus foto profil saat ini</label>
+                        </div>
+                    <?php endif; ?>
+                    <button type="submit" class="btn btn-primary w-100">Simpan Perubahan Profil</button>
+                <?= form_close() ?>
                 <hr>
                 <h6 class="mb-3">Tips Kesehatan</h6>
                 <ul class="list-unstyled small mb-0 hospital-tips">

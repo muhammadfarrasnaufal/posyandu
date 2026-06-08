@@ -8,6 +8,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @property CI_Loader $load
  * @property Posyandu_model $Posyandu_model
  * @property Schedule_model $Schedule_model
+ * @property User_model $User_model
  */
 class User extends CI_Controller {
 
@@ -15,7 +16,7 @@ class User extends CI_Controller {
         parent::__construct();
         $this->load->library(['session']);
         $this->load->helper(['url']);
-        $this->load->model(['Posyandu_model', 'Schedule_model']);
+        $this->load->model(['Posyandu_model', 'Schedule_model', 'User_model']);
         $this->check_login();
     }
 
@@ -26,11 +27,17 @@ class User extends CI_Controller {
     }
 
     public function index() {
+        $userId = $this->session->userdata('user_id');
+        $user = $this->User_model->get_by_id($userId);
+
         $data['title'] = 'Dashboard Pengguna';
         $data['fullname'] = $this->session->userdata('fullname');
         $data['email'] = $this->session->userdata('email');
-        $data['records'] = $this->Posyandu_model->get_by_user($this->session->userdata('user_id'));
-        $data['upcoming_schedules'] = $this->Schedule_model->get_by_user($this->session->userdata('user_id'));
+        $data['avatar_url'] = !empty($user->avatar) ? base_url($user->avatar) : null;
+        $data['success'] = $this->session->flashdata('success');
+        $data['error'] = $this->session->flashdata('error');
+        $data['records'] = $this->Posyandu_model->get_by_user($userId);
+        $data['upcoming_schedules'] = $this->Schedule_model->get_by_user($userId);
         $data['next_schedule'] = null;
         $today = date('Y-m-d');
         foreach ($data['upcoming_schedules'] as $schedule) {

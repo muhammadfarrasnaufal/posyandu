@@ -7,6 +7,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @property CI_Input $input
  * @property CI_Output $output
  * @property CI_Loader $load
+ * @property CI_Upload $upload
  * @property User_model $User_model
  */
 class Auth extends CI_Controller {
@@ -273,15 +274,27 @@ class Auth extends CI_Controller {
     }
 
     public function update_profile() {
+        $isApiRequest = $this->is_api_request();
+
         if (!$this->session->userdata('logged_in')) {
-            $this->json_response(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            if ($isApiRequest) {
+                $this->json_response(['success' => false, 'message' => 'Akses ditolak.'], 403);
+                return;
+            }
+            $this->session->set_flashdata('error', 'Akses ditolak.');
+            redirect('auth');
             return;
         }
 
         $user_id = $this->session->userdata('user_id');
         $user = $this->User_model->get_by_id($user_id);
         if (!$user) {
-            $this->json_response(['success' => false, 'message' => 'Pengguna tidak ditemukan.'], 404);
+            if ($isApiRequest) {
+                $this->json_response(['success' => false, 'message' => 'Pengguna tidak ditemukan.'], 404);
+                return;
+            }
+            $this->session->set_flashdata('error', 'Pengguna tidak ditemukan.');
+            redirect('user');
             return;
         }
 
@@ -297,12 +310,23 @@ class Auth extends CI_Controller {
         $this->form_validation->set_rules('email', 'Email', 'required|valid_email');
 
         if ($this->form_validation->run() === FALSE) {
-            $this->json_response(['success' => false, 'message' => validation_errors()], 400);
+            $errorMessage = strip_tags(validation_errors());
+            if ($isApiRequest) {
+                $this->json_response(['success' => false, 'message' => $errorMessage], 400);
+                return;
+            }
+            $this->session->set_flashdata('error', $errorMessage);
+            redirect('user');
             return;
         }
 
         if ($this->User_model->email_exists_except($email, $user_id)) {
-            $this->json_response(['success' => false, 'message' => 'Email sudah terdaftar oleh pengguna lain.'], 400);
+            if ($isApiRequest) {
+                $this->json_response(['success' => false, 'message' => 'Email sudah terdaftar oleh pengguna lain.'], 400);
+                return;
+            }
+            $this->session->set_flashdata('error', 'Email sudah terdaftar oleh pengguna lain.');
+            redirect('user');
             return;
         }
 
@@ -313,7 +337,12 @@ class Auth extends CI_Controller {
 
         $avatarUploadResult = $this->upload_avatar();
         if (is_array($avatarUploadResult) && isset($avatarUploadResult['error'])) {
-            $this->json_response(['success' => false, 'message' => $avatarUploadResult['error']], 400);
+            if ($isApiRequest) {
+                $this->json_response(['success' => false, 'message' => $avatarUploadResult['error']], 400);
+                return;
+            }
+            $this->session->set_flashdata('error', $avatarUploadResult['error']);
+            redirect('user');
             return;
         }
 
@@ -336,19 +365,31 @@ class Auth extends CI_Controller {
                 'email' => $updatedUser->email,
             ]);
 
-            $this->json_response([
-                'success' => true,
-                'message' => 'Profil berhasil diperbarui.',
-                'profile' => [
-                    'fullname' => $updatedUser->fullname,
-                    'email' => $updatedUser->email,
-                    'avatar_url' => $this->get_avatar_url($updatedUser->avatar),
-                ],
-            ]);
+            if ($isApiRequest) {
+                $this->json_response([
+                    'success' => true,
+                    'message' => 'Profil berhasil diperbarui.',
+                    'profile' => [
+                        'fullname' => $updatedUser->fullname,
+                        'email' => $updatedUser->email,
+                        'avatar_url' => $this->get_avatar_url($updatedUser->avatar),
+                    ],
+                ]);
+                return;
+            }
+
+            $this->session->set_flashdata('success', 'Profil berhasil diperbarui.');
+            redirect('user');
             return;
         }
 
-        $this->json_response(['success' => false, 'message' => 'Gagal memperbarui profil.'], 500);
+        if ($isApiRequest) {
+            $this->json_response(['success' => false, 'message' => 'Gagal memperbarui profil.'], 500);
+            return;
+        }
+
+        $this->session->set_flashdata('error', 'Gagal memperbarui profil.');
+        redirect('user');
     }
 
     public function logout() {

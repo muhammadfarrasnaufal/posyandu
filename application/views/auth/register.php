@@ -35,9 +35,7 @@
                     <div class="mb-3">
                         <label for="role" class="form-label">Peran</label>
                         <select name="role" id="role" class="form-select" required>
-                            <option value="">Pilih peran</option>
                             <option value="user" <?= set_select('role', 'user') ?>>Pengguna</option>
-                            <option value="admin" <?= set_select('role', 'admin') ?>>Admin</option>
                         </select>
                         <?= form_error('role', '<div class="text-danger small">', '</div>') ?>
                     </div>
