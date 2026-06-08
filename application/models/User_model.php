@@ -34,4 +34,14 @@ class User_model extends CI_Model {
         return $this->db->where('email', $email)->count_all_results('users') > 0;
     }
 
+    public function email_exists_except($email, $except_id) {
+        return $this->db->where('email', $email)
+                        ->where('id !=', $except_id)
+                        ->count_all_results('users') > 0;
+    }
+
+    public function update_user($id, $data) {
+        return $this->db->where('id', $id)->update('users', $data);
+    }
+
 }

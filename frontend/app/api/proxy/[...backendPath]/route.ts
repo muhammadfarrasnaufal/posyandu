@@ -12,7 +12,7 @@ async function proxyRequest(request: NextRequest, backendPath: string[]) {
   const headers = new Headers(request.headers);
   headers.set('host', url.host);
 
-  const body = ['GET', 'HEAD'].includes(request.method) ? undefined : await request.text();
+  const body = ['GET', 'HEAD'].includes(request.method) ? undefined : await request.arrayBuffer();
   const response = await fetch(url.toString(), {
     method: request.method,
     headers,

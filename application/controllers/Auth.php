@@ -34,6 +34,53 @@ class Auth extends CI_Controller {
             ->set_output(json_encode($payload));
     }
 
+    private function get_avatar_url(?string $avatar = null) {
+        if (empty($avatar)) {
+            return null;
+        }
+
+        return base_url($avatar);
+    }
+
+    private function upload_avatar() {
+        if (empty($_FILES['avatar']['name'])) {
+            return null;
+        }
+
+        $uploadPath = FCPATH . 'uploads/avatars/';
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+            @file_put_contents($uploadPath . 'index.html', '');
+        }
+
+        $config = [
+            'upload_path' => $uploadPath,
+            'allowed_types' => 'gif|jpg|jpeg|png',
+            'max_size' => 2048,
+            'file_name' => 'avatar_' . uniqid() . '_' . time(),
+            'overwrite' => false,
+        ];
+
+        $this->load->library('upload', $config);
+        if (!$this->upload->do_upload('avatar')) {
+            return ['error' => $this->upload->display_errors('', '')];
+        }
+
+        $uploadData = $this->upload->data();
+        return 'uploads/avatars/' . $uploadData['file_name'];
+    }
+
+    private function delete_avatar_file(?string $avatarPath) {
+        if (empty($avatarPath)) {
+            return;
+        }
+
+        $filePath = FCPATH . $avatarPath;
+        if (is_file($filePath)) {
+            @unlink($filePath);
+        }
+    }
+
     public function index() {
         if ($this->session->userdata('logged_in')) {
             redirect($this->session->userdata('role'));
@@ -134,11 +181,29 @@ class Auth extends CI_Controller {
             return;
         }
 
+        $avatarPath = null;
+        $avatarUploadResult = $this->upload_avatar();
+        if (is_array($avatarUploadResult) && isset($avatarUploadResult['error'])) {
+            if ($this->is_api_request()) {
+                $this->json_response(['success' => false, 'message' => $avatarUploadResult['error']], 400);
+                return;
+            }
+
+            $data['error'] = $avatarUploadResult['error'];
+            $this->load->view('auth/register', $data);
+            return;
+        }
+
+        if (is_string($avatarUploadResult)) {
+            $avatarPath = $avatarUploadResult;
+        }
+
         $userData = [
             'fullname' => $this->input->post('fullname', TRUE),
             'email' => $email,
             'password' => password_hash($this->input->post('password'), PASSWORD_DEFAULT),
             'role' => $this->input->post('role', TRUE),
+            'avatar' => $avatarPath,
         ];
 
         if ($this->User_model->create_user($userData)) {
@@ -167,13 +232,123 @@ class Auth extends CI_Controller {
             return;
         }
 
+        $user = $this->User_model->get_by_id($this->session->userdata('user_id'));
+        if (!$user) {
+            $this->session->sess_destroy();
+            $this->json_response(['logged_in' => false]);
+            return;
+        }
+
         $this->json_response([
             'logged_in' => true,
-            'user_id' => $this->session->userdata('user_id'),
-            'fullname' => $this->session->userdata('fullname'),
-            'email' => $this->session->userdata('email'),
-            'role' => $this->session->userdata('role'),
+            'user_id' => $user->id,
+            'fullname' => $user->fullname,
+            'email' => $user->email,
+            'role' => $user->role,
+            'avatar_url' => $this->get_avatar_url($user->avatar),
         ]);
+    }
+
+    public function profile() {
+        if (!$this->session->userdata('logged_in')) {
+            show_error('Akses ditolak.', 403);
+            return;
+        }
+
+        $user = $this->User_model->get_by_id($this->session->userdata('user_id'));
+        if (!$user) {
+            $this->json_response(['success' => false, 'message' => 'Pengguna tidak ditemukan.'], 404);
+            return;
+        }
+
+        $this->json_response([
+            'success' => true,
+            'profile' => [
+                'fullname' => $user->fullname,
+                'email' => $user->email,
+                'role' => $user->role,
+                'avatar_url' => $this->get_avatar_url($user->avatar),
+            ],
+        ]);
+    }
+
+    public function update_profile() {
+        if (!$this->session->userdata('logged_in')) {
+            $this->json_response(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return;
+        }
+
+        $user_id = $this->session->userdata('user_id');
+        $user = $this->User_model->get_by_id($user_id);
+        if (!$user) {
+            $this->json_response(['success' => false, 'message' => 'Pengguna tidak ditemukan.'], 404);
+            return;
+        }
+
+        $fullname = $this->input->post('fullname', TRUE);
+        $email = $this->input->post('email', TRUE);
+        $removeAvatar = $this->input->post('remove_avatar', TRUE) === '1';
+
+        $this->form_validation->set_data([
+            'fullname' => $fullname,
+            'email' => $email,
+        ]);
+        $this->form_validation->set_rules('fullname', 'Nama Lengkap', 'required');
+        $this->form_validation->set_rules('email', 'Email', 'required|valid_email');
+
+        if ($this->form_validation->run() === FALSE) {
+            $this->json_response(['success' => false, 'message' => validation_errors()], 400);
+            return;
+        }
+
+        if ($this->User_model->email_exists_except($email, $user_id)) {
+            $this->json_response(['success' => false, 'message' => 'Email sudah terdaftar oleh pengguna lain.'], 400);
+            return;
+        }
+
+        $updateData = [
+            'fullname' => $fullname,
+            'email' => $email,
+        ];
+
+        $avatarUploadResult = $this->upload_avatar();
+        if (is_array($avatarUploadResult) && isset($avatarUploadResult['error'])) {
+            $this->json_response(['success' => false, 'message' => $avatarUploadResult['error']], 400);
+            return;
+        }
+
+        if ($removeAvatar && !empty($user->avatar)) {
+            $this->delete_avatar_file($user->avatar);
+            $updateData['avatar'] = null;
+        }
+
+        if (is_string($avatarUploadResult)) {
+            if (!empty($user->avatar)) {
+                $this->delete_avatar_file($user->avatar);
+            }
+            $updateData['avatar'] = $avatarUploadResult;
+        }
+
+        if ($this->User_model->update_user($user_id, $updateData)) {
+            $updatedUser = $this->User_model->get_by_id($user_id);
+            $this->session->set_userdata([
+                'fullname' => $updatedUser->fullname,
+                'email' => $updatedUser->email,
+            ]);
+
+            $this->json_response([
+                'success' => true,
+                'message' => 'Profil berhasil diperbarui.',
+                'profile' => [
+                    'fullname' => $updatedUser->fullname,
+                    'email' => $updatedUser->email,
+                    'avatar_url' => $this->get_avatar_url($updatedUser->avatar),
+                ],
+            ]);
+            return;
+        }
+
+        $this->json_response(['success' => false, 'message' => 'Gagal memperbarui profil.'], 500);
     }
 
     public function logout() {

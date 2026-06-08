@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('user');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -42,35 +43,32 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const body = new URLSearchParams();
-      body.append('fullname', fullname);
-      body.append('email', email);
-      body.append('password', password);
-      body.append('confirm_password', confirmPassword);
-      body.append('role', role);
+        if (password !== confirmPassword) {
+          setError('Password dan konfirmasi password tidak cocok.');
+          setLoading(false);
+          return;
+        }
 
-      if (password !== confirmPassword) {
-        setError('Password dan konfirmasi password tidak cocok.');
-        setLoading(false);
-        return;
-      }
+        const formData = new FormData();
+        formData.append('fullname', fullname);
+        formData.append('email', email);
+        formData.append('password', password);
+        formData.append('confirm_password', confirmPassword);
+        formData.append('role', role);
+        if (avatarFile) {
+          formData.append('avatar', avatarFile);
+        }
 
-      const response = await fetch('/api/proxy/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Accept: 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: body.toString(),
-        credentials: 'include',
-        redirect: 'manual',
-      });
-
-      if (response.status >= 300 && response.status < 400) {
-        router.push('/login');
-        return;
-      }
+        const response = await fetch('/api/proxy/auth/register', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: formData,
+          credentials: 'include',
+          redirect: 'manual',
+        });
 
       const contentType = response.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
@@ -157,6 +155,16 @@ export default function RegisterPage() {
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Foto Profil</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+              className="form-control"
+            />
           </div>
 
           {error ? <p style={{ color: '#b91c1c' }}>{error}</p> : null}

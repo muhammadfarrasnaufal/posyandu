@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 type RecordItem = {
@@ -40,6 +40,11 @@ type UserDashboard = {
 export default function UserPage() {
   const router = useRouter();
   const [data, setData] = useState<UserDashboard | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [profileFullname, setProfileFullname] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
+  const [profileMessage, setProfileMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -65,6 +70,8 @@ export default function UserPage() {
           return;
         }
 
+        setAvatarUrl(sessionData.avatar_url || null);
+
         const response = await fetch('/api/proxy/user/dashboard_json', {
           credentials: 'include',
           headers: {
@@ -83,6 +90,8 @@ export default function UserPage() {
 
         const dashboardData = await response.json();
         setData(dashboardData);
+        setProfileFullname(dashboardData.user.fullname);
+        setProfileEmail(dashboardData.user.email);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Terjadi kesalahan.');
       } finally {
@@ -106,6 +115,81 @@ export default function UserPage() {
     router.push('/login');
   }
 
+  function handleAvatarSelection(event: ChangeEvent<HTMLInputElement>) {
+    setSelectedAvatar(event.target.files?.[0] || null);
+  }
+
+  async function handleProfileSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setProfileMessage('');
+
+    try {
+      const formData = new FormData();
+      formData.append('fullname', profileFullname);
+      formData.append('email', profileEmail);
+      if (selectedAvatar) {
+        formData.append('avatar', selectedAvatar);
+      }
+
+      const response = await fetch('/api/proxy/auth/update_profile', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          Accept: 'application/json',
+        },
+      });
+
+      const json = await response.json();
+      if (!response.ok || !json.success) {
+        setProfileMessage(json.message || 'Gagal memperbarui profil.');
+        return;
+      }
+
+      setAvatarUrl(json.profile.avatar_url || null);
+      setProfileFullname(json.profile.fullname);
+      setProfileEmail(json.profile.email);
+      setSelectedAvatar(null);
+      setProfileMessage('Profil berhasil diperbarui.');
+    } catch (err) {
+      setProfileMessage('Terjadi kesalahan saat memperbarui profil.');
+    }
+  }
+
+  async function handleRemoveAvatar() {
+    setProfileMessage('');
+
+    try {
+      const formData = new FormData();
+      formData.append('fullname', profileFullname);
+      formData.append('email', profileEmail);
+      formData.append('remove_avatar', '1');
+
+      const response = await fetch('/api/proxy/auth/update_profile', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          Accept: 'application/json',
+        },
+      });
+
+      const json = await response.json();
+      if (!response.ok || !json.success) {
+        setProfileMessage(json.message || 'Gagal menghapus foto profil.');
+        return;
+      }
+
+      setAvatarUrl(null);
+      setSelectedAvatar(null);
+      setProfileMessage('Foto profil berhasil dihapus.');
+    } catch (err) {
+      setProfileMessage('Terjadi kesalahan saat menghapus foto profil.');
+    }
+  }
+
   return (
     <main className="container">
       <section className="hero">
@@ -117,6 +201,70 @@ export default function UserPage() {
         <button className="button" style={{ background: '#ef4444' }} onClick={handleLogout}>
           Logout
         </button>
+      </div>
+
+      <div className="card" style={{ marginTop: '1.5rem' }}>
+        <h2>Profil Saya</h2>
+        <form onSubmit={handleProfileSave}>
+          <div className="mb-3" style={{ display: 'grid', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <img
+                src={avatarUrl || 'https://via.placeholder.com/96?text=User'}
+                alt="Avatar Pengguna"
+                width={96}
+                height={96}
+                style={{ borderRadius: '9999px', objectFit: 'cover', background: '#f3f4f6' }}
+              />
+              <div>
+                <p style={{ margin: 0, fontWeight: 600 }}>{data?.user.fullname || 'Pengguna'}</p>
+                <p style={{ margin: 0, color: '#6b7280' }}>{data?.user.email}</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="form-label">Nama Lengkap</label>
+              <input
+                type="text"
+                value={profileFullname}
+                onChange={(e) => setProfileFullname(e.target.value)}
+                className="form-control"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="form-label">Email</label>
+              <input
+                type="email"
+                value={profileEmail}
+                onChange={(e) => setProfileEmail(e.target.value)}
+                className="form-control"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="form-label">Foto Profil Baru</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarSelection}
+                className="form-control"
+              />
+            </div>
+
+            {profileMessage ? <p style={{ color: '#047857' }}>{profileMessage}</p> : null}
+
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="submit" className="button">
+                Simpan Profil
+              </button>
+              <button type="button" className="button" style={{ background: '#ef4444' }} onClick={handleRemoveAvatar}>
+                Hapus Foto Profil
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
 
       {loading ? (
