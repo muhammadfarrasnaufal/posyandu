@@ -42,6 +42,11 @@ type AdminDashboard = {
   records: RecordItem[];
   notifications: NotificationItem[];
   schedules: ScheduleItem[];
+  users: {
+    id: number;
+    fullname: string;
+    email: string;
+  }[];
 };
 
 export default function AdminPage() {
@@ -177,6 +182,22 @@ export default function AdminPage() {
               <p>{data.user.fullname}</p>
               <p style={{ color: '#6b7280' }}>{data.user.email}</p>
             </div>
+          </div>
+
+          <div className="card" style={{ marginTop: '1.5rem' }}>
+            <h2>Pengguna Non-Admin</h2>
+            {data.users.length === 0 ? (
+              <p>Tidak ada pengguna non-admin.</p>
+            ) : (
+              <ul>
+                {data.users.slice(0, 6).map((user) => (
+                  <li key={user.id} style={{ marginBottom: '0.75rem' }}>
+                    <strong>{user.fullname}</strong>
+                    <p style={{ color: '#6b7280', margin: 0 }}>{user.email}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="card" style={{ marginTop: '1.5rem' }}>

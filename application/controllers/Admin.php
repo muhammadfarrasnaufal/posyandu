@@ -114,6 +114,13 @@ class Admin extends CI_Controller {
         $notifications = $this->Notification_model->get_recent();
         $schedules = $this->Schedule_model->get_upcoming(14, 5);
         $users = $this->User_model->get_non_admin();
+        $usersPayload = array_map(static function ($user) {
+            return [
+                'id' => $user->id,
+                'fullname' => $user->fullname,
+                'email' => $user->email,
+            ];
+        }, $users);
 
         $stats = [
             'total' => $this->Posyandu_model->count_all(),
@@ -133,6 +140,7 @@ class Admin extends CI_Controller {
             'records' => $records,
             'notifications' => $notifications,
             'schedules' => $schedules,
+            'users' => $usersPayload,
         ]);
     }
 
