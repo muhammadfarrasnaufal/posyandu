@@ -4,6 +4,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 /**
  * @property CI_Session $session
  * @property CI_Input $input
+ * @property CI_Output $output
  * @property CI_Loader $load
  * @property Posyandu_model $Posyandu_model
  * @property Schedule_model $Schedule_model

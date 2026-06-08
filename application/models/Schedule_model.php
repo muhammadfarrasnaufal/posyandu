@@ -2,6 +2,9 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Schedule_model extends CI_Model {
+    /**
+     * @property CI_DB $db
+     */
 
     public function get_all() {
         $this->db->select('s.*, u.fullname AS owner_name, u.email AS owner_email');

@@ -1,4 +1,9 @@
 <?php
+/**
+ * Simple PDF generator library (lightweight)
+ *
+ * Minimal implementation used by Admin controller to export PDF reports.
+ */
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Simple_pdf {

@@ -5,6 +5,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @property CI_Session $session
  * @property CI_Form_validation $form_validation
  * @property CI_Input $input
+ * @property CI_Output $output
  * @property CI_Loader $load
  * @property Posyandu_model $Posyandu_model
  * @property User_model $User_model

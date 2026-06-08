@@ -2,6 +2,9 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Notification_model extends CI_Model {
+    /**
+     * @property CI_DB $db
+     */
 
     public function create($data) {
         return $this->db->insert('notifications', $data);

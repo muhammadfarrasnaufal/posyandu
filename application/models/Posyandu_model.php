@@ -2,6 +2,9 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Posyandu_model extends CI_Model {
+    /**
+     * @property CI_DB $db
+     */
 
     public function get_all() {
         $this->db->select('r.*, u.fullname AS owner_name');
