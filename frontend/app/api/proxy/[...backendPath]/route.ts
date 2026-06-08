@@ -32,21 +32,21 @@ async function proxyRequest(request: NextRequest, backendPath: string[]) {
 }
 
 export async function GET(request: NextRequest, context: any) {
-  const params = context.params as { backendPath: string[] };
+  const params = await context.params as { backendPath: string[] };
   return proxyRequest(request, params.backendPath);
 }
 
 export async function POST(request: NextRequest, context: any) {
-  const params = context.params as { backendPath: string[] };
+  const params = await context.params as { backendPath: string[] };
   return proxyRequest(request, params.backendPath);
 }
 
 export async function PUT(request: NextRequest, context: any) {
-  const params = context.params as { backendPath: string[] };
+  const params = await context.params as { backendPath: string[] };
   return proxyRequest(request, params.backendPath);
 }
 
 export async function DELETE(request: NextRequest, context: any) {
-  const params = context.params as { backendPath: string[] };
+  const params = await context.params as { backendPath: string[] };
   return proxyRequest(request, params.backendPath);
 }
